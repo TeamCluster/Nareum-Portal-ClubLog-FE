@@ -20,14 +20,25 @@ export default function Dashboard() {
       .catch((err) => setError(err.message))
   }, [slug])
 
+  // 기관 정보 — 페이지 title 에 short_name 사용. 헤더 표시는 그대로 slug.
+  const [info, setInfo] = useState(null)
+  useEffect(() => {
+    placeApi
+      .getInfo(slug)
+      .then(setInfo)
+      .catch(() => {
+        // 잘못된 slug 라면 RequireAuth 가 어차피 튕겨낼 거니까 무시
+      })
+  }, [slug])
+
   return (
     <div className="min-h-screen bg-stone-50">
       <AdminHeader />
 
       <main className="px-6 py-8 sm:px-10">
-        <h1 className="text-2xl font-bold text-stone-900">대시보드</h1>
+        <h1 className="text-2xl font-bold text-stone-900">{info?.full_name || '알 수 없는'} 대시보드</h1>
         <p className="mt-2 text-sm text-stone-600">
-          나름청소년활동센터 동아리 활동 현황입니다.
+          {info?.full_name || '알 수 없는'} 동아리 활동 현황입니다.
         </p>
 
         {error && (

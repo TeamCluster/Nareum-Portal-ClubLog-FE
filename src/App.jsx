@@ -75,12 +75,6 @@ function NotFound() {
         </code>
         )
       </p>
-      <Link
-        to="/super/setting"
-        className="mt-8 text-sm text-stone-500 hover:text-orange-700"
-      >
-        슈퍼 관리자 →
-      </Link>
     </div>
   )
 }

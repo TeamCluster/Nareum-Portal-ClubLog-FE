@@ -51,7 +51,7 @@ export default function AdminHeader() {
             to={`/${slug}/setting/main`}
             className="text-stone-900 hover:text-stone-600"
           >
-            나름 활동일지 — 관리자{' '}
+            {info?.short_name || '알 수 없는'} 활동일지 — 관리자{' '}
             <span className="font-mono text-xs text-stone-500">[{slug}]</span>
           </NavLink>
         </h1>
