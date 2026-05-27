@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { placeApi } from '../../api/places'
+import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 
 /**
  * 기관 관리자 로그인 페이지.
@@ -19,6 +20,13 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // 기관 정보 — title 에 short_name 사용. 폼 동작과 무관해서 실패해도 무시.
+  const [info, setInfo] = useState(null)
+  useEffect(() => {
+    placeApi.getInfo(slug).then(setInfo).catch(() => {})
+  }, [slug])
+  useDocumentTitle(info ? `${info.short_name} 동아리 관리자페이지` : null)
 
   // 이미 로그인 상태면 대시보드로 자동 이동
   useEffect(() => {

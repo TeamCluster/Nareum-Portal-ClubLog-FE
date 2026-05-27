@@ -2,6 +2,7 @@ import { Routes, Route, Link } from 'react-router-dom'
 
 import RequireAuth from './components/RequireAuth'
 import RequireSuperAuth from './components/RequireSuperAuth'
+import { useDocumentTitle } from './hooks/useDocumentTitle'
 
 // 기관 페이지들
 import MainPage from './pages/MainPage'
@@ -12,6 +13,8 @@ import ClubList from './pages/admin/ClubList'
 
 // 슈퍼 페이지들
 import SuperLogin from './pages/super/Login'
+import SuperDashboard from './pages/super/Dashboard'
+import SuperPlaces from './pages/super/Places'
 
 /*
  * 라우터 — 멀티테넌트.
@@ -44,17 +47,11 @@ export default function App() {
         <Route path="/:slug/setting/club_list" element={<ClubList />} />
       </Route>
 
-      {/* 슈퍼 관리자 — 다음 턴에 진짜 페이지 작성 */}
+      {/* 슈퍼 관리자 */}
       <Route path="/super/setting" element={<SuperLogin />} />
       <Route element={<RequireSuperAuth />}>
-        <Route
-          path="/super/setting/main"
-          element={<SuperPlaceholder title="슈퍼 대시보드" />}
-        />
-        <Route
-          path="/super/setting/places"
-          element={<SuperPlaceholder title="기관 관리" />}
-        />
+        <Route path="/super/setting/main" element={<SuperDashboard />} />
+        <Route path="/super/setting/places" element={<SuperPlaces />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />
@@ -63,6 +60,7 @@ export default function App() {
 }
 
 function NotFound() {
+  useDocumentTitle('페이지를 찾을 수 없습니다')
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-stone-50 px-4 text-center">
       <h1 className="text-3xl font-bold text-stone-900">
@@ -83,17 +81,6 @@ function NotFound() {
       >
         슈퍼 관리자 →
       </Link>
-    </div>
-  )
-}
-
-function SuperPlaceholder({ title }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-stone-50">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-stone-900">{title}</h1>
-        <p className="mt-2 text-stone-500">이 페이지는 곧 만들어집니다.</p>
-      </div>
     </div>
   )
 }

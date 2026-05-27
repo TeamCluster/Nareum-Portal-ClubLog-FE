@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { placeApi } from '../api/places'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 /**
  * 일지 작성 페이지 (공개 — 로그인 불필요).
@@ -30,6 +31,7 @@ function todayString() {
 export default function MainPage() {
   const { slug } = useParams()
   const [info, setInfo] = useState(null)
+  useDocumentTitle(info ? `${info.short_name} 동아리 활동일지` : null)
   const [clubs, setClubs] = useState([])
   const [clubDict, setClubDict] = useState({})
   const [loadError, setLoadError] = useState('')

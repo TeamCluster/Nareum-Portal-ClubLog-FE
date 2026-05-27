@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, useNavigate, useParams } from 'react-router-dom'
 import { placeApi } from '../api/places'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 /**
  * 기관 관리자 전용 헤더 — 네비 + 로그아웃.
@@ -12,6 +13,18 @@ export default function AdminHeader() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  // 기관 정보 — 페이지 title 에 short_name 사용. 헤더 표시는 그대로 slug.
+  const [info, setInfo] = useState(null)
+  useEffect(() => {
+    placeApi
+      .getInfo(slug)
+      .then(setInfo)
+      .catch(() => {
+        // 잘못된 slug 라면 RequireAuth 가 어차피 튕겨낼 거니까 무시
+      })
+  }, [slug])
+  useDocumentTitle(info ? `${info.short_name} 동아리 관리자페이지` : null)
 
   // slug 기반 링크들 — 컴포넌트마다 재계산 (slug 가 바뀌면 자동 반영)
   const navItems = [
