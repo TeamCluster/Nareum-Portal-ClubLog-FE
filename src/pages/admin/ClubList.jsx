@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { apiGet, apiPost, apiDelete } from '../../api/client'
+import { useParams } from 'react-router-dom'
+import { placeApi } from '../../api/places'
 import AdminHeader from '../../components/AdminHeader'
 
 /**
- * 동아리 일람.
+ * 동아리 일람 페이지.
  *   - 신규 동아리 추가 (이름 + 분야)
  *   - 동아리 목록 표 (행마다 삭제 버튼)
  *
@@ -11,6 +12,7 @@ import AdminHeader from '../../components/AdminHeader'
  * 추가 후엔 정렬 반영을 위해 서버에서 다시 가져옵니다.
  */
 export default function ClubList() {
+  const { slug } = useParams()
   const [clubs, setClubs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -26,11 +28,13 @@ export default function ClubList() {
 
   useEffect(() => {
     loadClubs()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug])
 
   function loadClubs() {
     setLoading(true)
-    apiGet('/admin/clubs')
+    placeApi
+      .getAdminClubs(slug)
       .then((data) => setClubs(data.clubs || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
@@ -40,10 +44,7 @@ export default function ClubList() {
     e.preventDefault()
     setAdding(true)
     try {
-      const result = await apiPost('/admin/clubs', {
-        name: newName,
-        category: newCategory,
-      })
+      const result = await placeApi.addClub(slug, newName, newCategory)
       setFlash({ type: 'success', message: result.message })
       setNewName('')
       setNewCategory('')
@@ -57,12 +58,14 @@ export default function ClubList() {
   }
 
   async function handleDelete(club) {
-    const ok = window.confirm(`정말로 '${club.name}' 동아리를 삭제하시겠습니까?`)
+    const ok = window.confirm(
+      `정말로 '${club.name}' 동아리를 삭제하시겠습니까?`
+    )
     if (!ok) return
 
     setDeletingName(club.name)
     try {
-      const result = await apiDelete('/admin/clubs', { name: club.name })
+      const result = await placeApi.deleteClub(slug, club.name)
       setClubs((prev) => prev.filter((c) => c.name !== club.name))
       setFlash({ type: 'success', message: result.message })
     } catch (err) {

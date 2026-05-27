@@ -1,27 +1,30 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
-import { apiGet } from '../api/client'
+import { Navigate, Outlet, useParams } from 'react-router-dom'
+import { placeApi } from '../api/places'
 
 /**
- * 관리자 라우트 가드.
+ * 기관 관리자 라우트 가드.
+ *
+ * URL 의 :slug 파라미터를 읽어 해당 기관에 로그인됐는지 확인.
+ * 로그인 안 됐으면 /:slug/setting (해당 기관의 로그인 페이지)로 리다이렉트.
  *
  * 사용:
  *   <Route element={<RequireAuth />}>
- *     <Route path="/setting/main" element={<Dashboard />} />
+ *     <Route path="/:slug/setting/main" element={<Dashboard />} />
  *     ...
  *   </Route>
- *
- * 세션이 없으면 /setting 으로 리다이렉트. 자식 라우트는 <Outlet /> 으로 렌더.
  */
 export default function RequireAuth() {
+  const { slug } = useParams()
   // 'checking' (초기) -> 'ok' or 'unauthorized'
   const [status, setStatus] = useState('checking')
 
   useEffect(() => {
-    apiGet('/admin/session')
+    placeApi
+      .getSession(slug)
       .then((d) => setStatus(d.logged_in ? 'ok' : 'unauthorized'))
       .catch(() => setStatus('unauthorized'))
-  }, [])
+  }, [slug])
 
   if (status === 'checking') {
     return (
@@ -31,7 +34,7 @@ export default function RequireAuth() {
     )
   }
   if (status === 'unauthorized') {
-    return <Navigate to="/setting" replace />
+    return <Navigate to={`/${slug}/setting`} replace />
   }
   return <Outlet />
 }

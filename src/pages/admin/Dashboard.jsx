@@ -1,21 +1,24 @@
 import { useEffect, useState } from 'react'
-import { apiGet } from '../../api/client'
+import { useParams } from 'react-router-dom'
+import { placeApi } from '../../api/places'
 import AdminHeader from '../../components/AdminHeader'
 
 /**
- * 관리자 대시보드.
+ * 기관 관리자 대시보드.
  *   - 오늘의 활동 건수 / 총 동아리 수 (통계 카드)
  *   - 최근 활동 이력 5건 (테이블)
  */
 export default function Dashboard() {
+  const { slug } = useParams()
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    apiGet('/admin/dashboard')
+    placeApi
+      .getDashboard(slug)
       .then(setData)
       .catch((err) => setError(err.message))
-  }, [])
+  }, [slug])
 
   return (
     <div className="min-h-screen bg-stone-50">

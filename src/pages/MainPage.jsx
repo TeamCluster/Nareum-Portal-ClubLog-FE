@@ -1,333 +1,24 @@
 import { useEffect, useState } from 'react'
-import { apiGet, apiPost } from '../api/client'
-import Header from '../components/Header'
+import { useParams } from 'react-router-dom'
+import { placeApi } from '../api/places'
 
 /**
- * 메인 페이지 — 동아리 활동일지 작성 폼.
+ * 일지 작성 페이지 (공개 — 로그인 불필요).
+ *
+ * URL: /:slug/clublog
  *
  * 흐름:
- *   1. 마운트 시 GET /api/clubs 로 동아리 목록 + 분야 매핑 로드
- *   2. 폼 입력 (controlled component)
- *   3. submit -> POST /api/logs
- *   4. 성공 시 모달 표시, 닫으면 폼 초기화
+ *   1. 마운트 시 기관 정보(full_name) + 동아리 목록을 병렬로 가져옴
+ *   2. 사용자가 폼 작성 -> placeApi.createLog(slug, data)
+ *   3. 성공 시 저장완료 모달 -> '다시 작성' 또는 '닫기'
  */
-export default function MainPage() {
-  const [clubs, setClubs] = useState([])
-  const [clubDict, setClubDict] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-  const [successData, setSuccessData] = useState(null)
-  const [formData, setFormData] = useState(initialFormData())
-
-  // 동아리 목록 로드 (마운트 시 1회)
-  useEffect(() => {
-    apiGet('/clubs')
-      .then((data) => {
-        setClubs(data.clubs || [])
-        setClubDict(data.club_dict || {})
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
-  }, [])
-
-  // 동아리 선택 시 분야 자동 채움
-  function handleClubChange(e) {
-    const name = e.target.value
-    setFormData((prev) => ({
-      ...prev,
-      club_name: name,
-      category: clubDict[name] || '',
-    }))
-  }
-
-  function handleChange(e) {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    setSubmitting(true)
-    try {
-      // <input type="date"> / <input type="time"> 값을 백엔드가 기대하는
-      // year/month/day, hour/minute 형식으로 분리.
-      const [y, m, d] = formData.activity_date.split('-').map(Number)
-      const [sh, sm] = formData.start_time.split(':').map(Number)
-      const [eh, em] = formData.end_time.split(':').map(Number)
-
-      const payload = {
-        category: formData.category,
-        club_name: formData.club_name,
-        activity_year: y,
-        activity_month: m,
-        activity_day: d,
-        start_hour: sh,
-        start_minute: sm,
-        end_hour: eh,
-        end_minute: em,
-        participants: formData.participants,
-        author: formData.author,
-        activity_content: formData.activity_content,
-        element_man: Number(formData.element_man) || 0,
-        element_woman: Number(formData.element_woman) || 0,
-        middle_man: Number(formData.middle_man) || 0,
-        middle_woman: Number(formData.middle_woman) || 0,
-        high_man: Number(formData.high_man) || 0,
-        high_woman: Number(formData.high_woman) || 0,
-        univ_man: Number(formData.univ_man) || 0,
-        univ_woman: Number(formData.univ_woman) || 0,
-      }
-
-      const data = await apiPost('/logs', payload)
-      setSuccessData(data.result)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  function closeModal() {
-    setSuccessData(null)
-    setFormData(initialFormData())
-  }
-
-  return (
-    <div className="min-h-screen bg-stone-50">
-      <Header />
-
-      <main className="px-4 py-8 sm:px-6 sm:py-12">
-        <div className="mx-auto max-w-2xl rounded-lg border border-stone-200 bg-white p-6 shadow-sm sm:p-10">
-          <h2 className="mb-8 text-2xl font-bold text-stone-900">
-            나름청소년활동센터 동아리 활동일지
-          </h2>
-
-          {loading && (
-            <p className="text-stone-500">동아리 목록을 불러오는 중…</p>
-          )}
-
-          {error && (
-            <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          {!loading && (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* 동아리 명 */}
-              <Field label="⋆ 동아리 명">
-                <select
-                  name="club_name"
-                  value={formData.club_name}
-                  onChange={handleClubChange}
-                  required
-                  className={inputClass}
-                >
-                  <option value="" disabled>
-                    동아리를 골라주세요
-                  </option>
-                  {clubs.map((c) => (
-                    <option key={c.name} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              {/* 동아리 분야 (자동) */}
-              <Field label="⋆ 동아리 분야">
-                <input
-                  type="text"
-                  name="category"
-                  value={formData.category}
-                  readOnly
-                  placeholder="동아리 이름을 선택하면 자동으로 표시돼요"
-                  className={`${inputClass} bg-stone-100 text-stone-600`}
-                />
-              </Field>
-
-              {/* 활동 일자 */}
-              <Field label="⋆ 활동 일자">
-                <input
-                  type="date"
-                  name="activity_date"
-                  value={formData.activity_date}
-                  onChange={handleChange}
-                  required
-                  className={inputClass}
-                />
-              </Field>
-
-              {/* 활동 시간 */}
-              <Field label="⋆ 활동 시간">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="time"
-                    name="start_time"
-                    value={formData.start_time}
-                    onChange={handleChange}
-                    required
-                    className={inputClass}
-                  />
-                  <span className="text-stone-500">~</span>
-                  <input
-                    type="time"
-                    name="end_time"
-                    value={formData.end_time}
-                    onChange={handleChange}
-                    required
-                    className={inputClass}
-                  />
-                </div>
-              </Field>
-
-              {/* 참여자 */}
-              <Field label="⋆ 참여자 (쉼표로 구분)">
-                <input
-                  type="text"
-                  name="participants"
-                  value={formData.participants}
-                  onChange={handleChange}
-                  placeholder="디렉터 안, 치프 강, 매니저 규, 스태프 홍"
-                  required
-                  className={inputClass}
-                />
-              </Field>
-
-              {/* 연령별 인원 — 2열 그리드 */}
-              <Field label="⋆ 연령 별 참여자 수">
-                <div className="grid grid-cols-2 gap-3">
-                  {AGE_GROUPS.map(({ key, label }) => (
-                    <label
-                      key={key}
-                      className="flex items-center gap-2 text-sm text-stone-700"
-                    >
-                      <span className="w-16">{label}</span>
-                      <input
-                        type="number"
-                        name={key}
-                        value={formData[key]}
-                        onChange={handleChange}
-                        min={0}
-                        className={`${inputClass} flex-1`}
-                      />
-                    </label>
-                  ))}
-                </div>
-              </Field>
-
-              {/* 작성자 */}
-              <Field label="⋆ 작성자">
-                <input
-                  type="text"
-                  name="author"
-                  value={formData.author}
-                  onChange={handleChange}
-                  placeholder="캡튼 안"
-                  required
-                  className={inputClass}
-                />
-              </Field>
-
-              {/* 활동 내용 */}
-              <Field label="⋆ 활동 내용">
-                <textarea
-                  name="activity_content"
-                  value={formData.activity_content}
-                  onChange={handleChange}
-                  rows={6}
-                  placeholder="다같이 모여서 작당모의를 야무지게 했다."
-                  required
-                  className={inputClass}
-                />
-              </Field>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full rounded-md bg-orange-700 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-orange-800 disabled:cursor-not-allowed disabled:bg-stone-400"
-              >
-                {submitting ? '저장 중…' : '저장하기'}
-              </button>
-            </form>
-          )}
-        </div>
-      </main>
-
-      {/* 저장 완료 모달 */}
-      {successData && (
-        <SuccessModal data={successData} onClose={closeModal} />
-      )}
-    </div>
-  )
+const INITIAL_COUNTS = {
+  elem_m: 0, elem_f: 0,
+  mid_m: 0, mid_f: 0,
+  high_m: 0, high_f: 0,
+  univ_m: 0, univ_f: 0,
 }
 
-/* ---------- 보조 컴포넌트 ---------- */
-
-function Field({ label, children }) {
-  return (
-    <div>
-      <label className="mb-2 block text-sm font-medium text-stone-700">
-        {label}
-      </label>
-      {children}
-    </div>
-  )
-}
-
-function SuccessModal({ data, onClose }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 px-4"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-lg bg-white p-8 text-center shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="mb-4 text-2xl font-bold text-stone-900">저장 완료 ✓</h3>
-        <p className="text-stone-700">
-          <strong>{data.date}</strong>에 진행된{' '}
-          <strong>
-            [{data.category}] {data.club}
-          </strong>{' '}
-          활동이
-        </p>
-        <p className="mt-1 text-stone-700">
-          <strong>{data.people}명</strong>으로 성공적으로 저장되었습니다.
-        </p>
-        <button
-          onClick={onClose}
-          className="mt-6 rounded-md bg-orange-700 px-6 py-2 font-semibold text-white hover:bg-orange-800"
-        >
-          닫기
-        </button>
-      </div>
-    </div>
-  )
-}
-
-/* ---------- 상수 / 유틸 ---------- */
-
-// 모든 input 에 공유되는 스타일
-const inputClass =
-  'w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-stone-900 placeholder:text-stone-400 focus:border-orange-600 focus:outline-none focus:ring-1 focus:ring-orange-600'
-
-const AGE_GROUPS = [
-  { key: 'element_man', label: '초등 남' },
-  { key: 'element_woman', label: '초등 여' },
-  { key: 'middle_man', label: '중등 남' },
-  { key: 'middle_woman', label: '중등 여' },
-  { key: 'high_man', label: '고등 남' },
-  { key: 'high_woman', label: '고등 여' },
-  { key: 'univ_man', label: '후기 남' },
-  { key: 'univ_woman', label: '후기 여' },
-]
-
-// 로컬 타임존 기준 오늘 'YYYY-MM-DD'.
-// toISOString() 은 UTC 기반이라 새벽 시간대에 어제로 나올 수 있어 직접 조립.
 function todayString() {
   const d = new Date()
   const yyyy = d.getFullYear()
@@ -336,23 +27,341 @@ function todayString() {
   return `${yyyy}-${mm}-${dd}`
 }
 
-function initialFormData() {
-  return {
-    club_name: '',
-    category: '',
-    activity_date: todayString(),
-    start_time: '',
-    end_time: '',
-    participants: '',
-    author: '',
-    activity_content: '',
-    element_man: 0,
-    element_woman: 0,
-    middle_man: 0,
-    middle_woman: 0,
-    high_man: 0,
-    high_woman: 0,
-    univ_man: 0,
-    univ_woman: 0,
+export default function MainPage() {
+  const { slug } = useParams()
+  const [info, setInfo] = useState(null)
+  const [clubs, setClubs] = useState([])
+  const [clubDict, setClubDict] = useState({})
+  const [loadError, setLoadError] = useState('')
+
+  // 폼 필드
+  const [clubName, setClubName] = useState('')
+  const [category, setCategory] = useState('')
+  const [activityDate, setActivityDate] = useState(todayString())
+  const [startTime, setStartTime] = useState('14:00')
+  const [endTime, setEndTime] = useState('16:00')
+  const [content, setContent] = useState('')
+  const [author, setAuthor] = useState('')
+  const [participants, setParticipants] = useState('')
+  const [counts, setCounts] = useState(INITIAL_COUNTS)
+
+  // 제출 상태
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [modal, setModal] = useState(null)
+
+  useEffect(() => {
+    Promise.all([placeApi.getInfo(slug), placeApi.getClubs(slug)])
+      .then(([infoData, clubsData]) => {
+        setInfo(infoData)
+        setClubs(clubsData.clubs || [])
+        setClubDict(clubsData.club_dict || {})
+      })
+      .catch((err) => setLoadError(err.message))
+  }, [slug])
+
+  function handleClubChange(name) {
+    setClubName(name)
+    setCategory(clubDict[name] || '')
   }
+
+  function handleCountChange(key, val) {
+    const n = parseInt(val, 10) || 0
+    setCounts((prev) => ({ ...prev, [key]: Math.max(0, n) }))
+  }
+
+  function resetForm() {
+    setClubName('')
+    setCategory('')
+    setContent('')
+    setAuthor('')
+    setParticipants('')
+    setCounts(INITIAL_COUNTS)
+    setError('')
+    setModal(null)
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError('')
+
+    const totalCount = Object.values(counts).reduce((s, v) => s + v, 0)
+    if (totalCount === 0) {
+      setError('총 인원수가 0명일 수 없습니다.')
+      return
+    }
+    if (!clubName) {
+      setError('동아리를 선택해주세요.')
+      return
+    }
+
+    const [year, month, day] = activityDate.split('-').map(Number)
+    const [sh, sm] = startTime.split(':').map(Number)
+    const [eh, em] = endTime.split(':').map(Number)
+
+    const payload = {
+      category,
+      club_name: clubName,
+      activity_year: year,
+      activity_month: month,
+      activity_day: day,
+      start_hour: sh, start_minute: sm,
+      end_hour: eh, end_minute: em,
+      participants,
+      author,
+      activity_content: content,
+      element_man: counts.elem_m, element_woman: counts.elem_f,
+      middle_man: counts.mid_m, middle_woman: counts.mid_f,
+      high_man: counts.high_m, high_woman: counts.high_f,
+      univ_man: counts.univ_m, univ_woman: counts.univ_f,
+    }
+
+    setSubmitting(true)
+    try {
+      const response = await placeApi.createLog(slug, payload)
+      setModal({ ...response.result, message: response.message })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-stone-50 px-4 text-center">
+        <p className="text-stone-700">{loadError}</p>
+      </div>
+    )
+  }
+  if (!info) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-stone-50">
+        <p className="text-stone-500">불러오는 중…</p>
+      </div>
+    )
+  }
+
+  const totalCount = Object.values(counts).reduce((s, v) => s + v, 0)
+
+  return (
+    <div className="min-h-screen bg-stone-50">
+      {/* 상단 — 풀네임으로 페이지 타이틀 */}
+      <header className="bg-orange-700 px-6 py-6 text-white sm:px-10">
+        <h1 className="text-xl font-bold sm:text-2xl">
+          {info.full_name} 동아리 활동일지
+        </h1>
+      </header>
+
+      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 rounded-lg border border-stone-200 bg-white p-6 shadow-sm"
+        >
+          <Field label="동아리 명" required>
+            <select
+              value={clubName}
+              onChange={(e) => handleClubChange(e.target.value)}
+              required
+              className={inputClass}
+            >
+              <option value="">선택하세요</option>
+              {clubs.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="동아리 분야">
+            <input
+              type="text"
+              value={category}
+              readOnly
+              placeholder="동아리 선택 시 자동 표시"
+              className={`${inputClass} bg-stone-100`}
+            />
+          </Field>
+
+          <Field label="활동 일자" required>
+            <input
+              type="date"
+              value={activityDate}
+              onChange={(e) => setActivityDate(e.target.value)}
+              required
+              className={inputClass}
+            />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="시작 시간" required>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                required
+                className={inputClass}
+              />
+            </Field>
+            <Field label="종료 시간" required>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                required
+                className={inputClass}
+              />
+            </Field>
+          </div>
+
+          <Field label="활동 내용" required>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={4}
+              required
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="작성자" required>
+            <input
+              type="text"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              required
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="참가자 (선택)">
+            <input
+              type="text"
+              value={participants}
+              onChange={(e) => setParticipants(e.target.value)}
+              placeholder="콤마(,)로 구분"
+              className={inputClass}
+            />
+          </Field>
+
+          <fieldset className="rounded-md border border-stone-200 p-4">
+            <legend className="px-1 text-sm font-medium text-stone-700">
+              참가 인원 (총{' '}
+              <span className="font-bold text-orange-700">{totalCount}</span>명)
+            </legend>
+            <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+              <CountInput label="초등 남" value={counts.elem_m}
+                onChange={(v) => handleCountChange('elem_m', v)} />
+              <CountInput label="초등 여" value={counts.elem_f}
+                onChange={(v) => handleCountChange('elem_f', v)} />
+              <CountInput label="중등 남" value={counts.mid_m}
+                onChange={(v) => handleCountChange('mid_m', v)} />
+              <CountInput label="중등 여" value={counts.mid_f}
+                onChange={(v) => handleCountChange('mid_f', v)} />
+              <CountInput label="고등 남" value={counts.high_m}
+                onChange={(v) => handleCountChange('high_m', v)} />
+              <CountInput label="고등 여" value={counts.high_f}
+                onChange={(v) => handleCountChange('high_f', v)} />
+              <CountInput label="후기 남" value={counts.univ_m}
+                onChange={(v) => handleCountChange('univ_m', v)} />
+              <CountInput label="후기 여" value={counts.univ_f}
+                onChange={(v) => handleCountChange('univ_f', v)} />
+            </div>
+          </fieldset>
+
+          {error && (
+            <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-md bg-orange-700 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-orange-800 disabled:cursor-not-allowed disabled:bg-stone-400"
+          >
+            {submitting ? '저장 중…' : '작성 완료'}
+          </button>
+        </form>
+      </main>
+
+      {modal && (
+        <SuccessModal
+          modal={modal}
+          onContinue={resetForm}
+          onClose={() => setModal(null)}
+        />
+      )}
+    </div>
+  )
 }
+
+/* ---------- 보조 컴포넌트 ---------- */
+
+function Field({ label, required, children }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-sm font-medium text-stone-700">
+        {label}
+        {required && <span className="ml-1 text-red-600">*</span>}
+      </span>
+      {children}
+    </label>
+  )
+}
+
+function CountInput({ label, value, onChange }) {
+  return (
+    <label className="flex flex-col text-sm">
+      <span className="mb-1 text-stone-600">{label}</span>
+      <input
+        type="number"
+        min={0}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-md border border-stone-300 bg-white px-2 py-1.5 text-stone-900 focus:border-orange-600 focus:outline-none focus:ring-1 focus:ring-orange-600"
+      />
+    </label>
+  )
+}
+
+function SuccessModal({ modal, onContinue, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+        <h2 className="text-xl font-bold text-orange-700">저장 완료!</h2>
+        <p className="mt-3 text-sm text-stone-700">
+          <span className="text-stone-500">[{modal.category}]</span>{' '}
+          <span className="font-semibold">{modal.club}</span> 동아리 활동
+        </p>
+        <p className="text-sm text-stone-600">
+          {modal.date} · {modal.people}명
+        </p>
+        <p className="mt-3 text-sm text-stone-600">
+          이 정상적으로 저장되었습니다.
+        </p>
+
+        <div className="mt-6 flex gap-3">
+          <button
+            type="button"
+            onClick={onContinue}
+            className="flex-1 rounded-md bg-orange-700 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-800"
+          >
+            다시 작성
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-md border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-100"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const inputClass =
+  'block w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-stone-900 placeholder:text-stone-400 focus:border-orange-600 focus:outline-none focus:ring-1 focus:ring-orange-600'

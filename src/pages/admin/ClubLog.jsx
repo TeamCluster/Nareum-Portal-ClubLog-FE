@@ -1,39 +1,48 @@
 import { useEffect, useState } from 'react'
-import { apiGet, apiDelete, apiDownload } from '../../api/client'
+import { useParams } from 'react-router-dom'
+import { placeApi } from '../../api/places'
 import AdminHeader from '../../components/AdminHeader'
 
 /**
- * 활동 이력 관리 페이지.
- *   - 전체 활동 이력 (최신순) 표시
- *   - 각 행마다 삭제 버튼 (confirm 후 DELETE)
- *   - 상단에 엑셀 다운로드 버튼
+ * 동아리 활동 이력 관리 페이지.
+ *   - 전체 로그 목록 (최신순)
+ *   - 행 단위 삭제
+ *   - 엑셀 다운로드
  */
 export default function ClubLog() {
+  const { slug } = useParams()
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [flash, setFlash] = useState(null) // { type: 'success'|'error', message }
-  const [deletingId, setDeletingId] = useState(null) // 중복 클릭 방지
+  const [flash, setFlash] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
-    apiGet('/admin/logs')
+    loadLogs()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug])
+
+  function loadLogs() {
+    setLoading(true)
+    placeApi
+      .getLogs(slug)
       .then((data) => setLogs(data.logs || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [])
+  }
 
   async function handleDelete(log) {
     const ok = window.confirm(
-      `이 기록(${log.club_name}, ${log.created_at})을(를) 정말로 삭제하시겠습니까?`,
+      `정말로 '${log.club_name}' (${log.activity_date}) 활동 이력을 삭제하시겠습니까?`
     )
     if (!ok) return
 
     setDeletingId(log.id)
     try {
-      await apiDelete('/admin/logs', { id: log.id })
-      // 서버에서 삭제됐으니 로컬 state 에서도 제거 (재요청보다 빠름)
+      const result = await placeApi.deleteLog(slug, log.id)
       setLogs((prev) => prev.filter((l) => l.id !== log.id))
-      setFlash({ type: 'success', message: '활동 이력이 삭제되었습니다.' })
+      setFlash({ type: 'success', message: result.message })
     } catch (err) {
       setFlash({ type: 'error', message: err.message })
     } finally {
@@ -42,10 +51,13 @@ export default function ClubLog() {
   }
 
   async function handleDownload() {
+    setDownloading(true)
     try {
-      await apiDownload('/logs/download')
+      await placeApi.downloadLogs(slug)
     } catch (err) {
       setFlash({ type: 'error', message: err.message })
+    } finally {
+      setDownloading(false)
     }
   }
 
@@ -54,19 +66,20 @@ export default function ClubLog() {
       <AdminHeader />
 
       <main className="px-6 py-8 sm:px-10">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-stone-900">활동 이력 관리</h1>
             <p className="mt-2 text-sm text-stone-600">
-              최신순으로 정렬됩니다. 각 행에서 삭제 가능합니다.
+              전체 활동 이력을 조회/삭제하거나 엑셀로 내려받을 수 있습니다.
             </p>
           </div>
           <button
             type="button"
             onClick={handleDownload}
-            className="rounded-md bg-orange-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-800"
+            disabled={downloading || logs.length === 0}
+            className="rounded-md bg-orange-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-800 disabled:cursor-not-allowed disabled:bg-stone-400"
           >
-            엑셀로 저장 💾
+            {downloading ? '다운로드 중…' : '엑셀로 저장'}
           </button>
         </div>
 
@@ -91,20 +104,21 @@ export default function ClubLog() {
             <table className="w-full text-sm">
               <thead className="border-b border-stone-200 bg-stone-50 text-left">
                 <tr>
-                  <Th>관리</Th>
                   <Th>기록일시</Th>
                   <Th>동아리</Th>
                   <Th>활동 일자</Th>
                   <Th>시간</Th>
                   <Th>활동 내용</Th>
+                  <Th>참가자</Th>
                   <Th>작성자</Th>
                   <Th className="text-right">인원</Th>
+                  <Th className="text-center">관리</Th>
                 </tr>
               </thead>
               <tbody>
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-stone-500">
+                    <td colSpan={9} className="px-4 py-12 text-center text-stone-500">
                       아직 활동 이력이 없습니다.
                     </td>
                   </tr>
@@ -114,7 +128,24 @@ export default function ClubLog() {
                       key={log.id}
                       className="border-b border-stone-100 last:border-0 hover:bg-stone-50"
                     >
-                      <Td>
+                      <Td className="whitespace-nowrap">{log.created_at}</Td>
+                      <Td className="whitespace-nowrap">
+                        <span className="text-stone-500">[{log.category}]</span>{' '}
+                        {log.club_name}
+                      </Td>
+                      <Td className="whitespace-nowrap">{log.activity_date}</Td>
+                      <Td className="whitespace-nowrap">
+                        {log.start_time}~{log.end_time}
+                      </Td>
+                      <Td className="max-w-sm">
+                        <span className="line-clamp-2">{log.content}</span>
+                      </Td>
+                      <Td className="max-w-xs truncate">{log.participants}</Td>
+                      <Td>{log.author}</Td>
+                      <Td className="text-right whitespace-nowrap">
+                        {log.total_count}명
+                      </Td>
+                      <Td className="text-center">
                         <button
                           type="button"
                           onClick={() => handleDelete(log)}
@@ -123,24 +154,6 @@ export default function ClubLog() {
                         >
                           {deletingId === log.id ? '삭제 중…' : '삭제'}
                         </button>
-                      </Td>
-                      <Td className="whitespace-nowrap text-xs text-stone-500">
-                        {log.created_at}
-                      </Td>
-                      <Td className="whitespace-nowrap">
-                        <span className="text-stone-500">[{log.category}]</span>{' '}
-                        {log.club_name}
-                      </Td>
-                      <Td className="whitespace-nowrap">{log.activity_date}</Td>
-                      <Td className="whitespace-nowrap text-stone-600">
-                        {log.start_time}~{log.end_time}
-                      </Td>
-                      <Td className="max-w-md">
-                        <span className="line-clamp-2">{log.content}</span>
-                      </Td>
-                      <Td className="whitespace-nowrap">{log.author}</Td>
-                      <Td className="whitespace-nowrap text-right">
-                        {log.total_count}명
                       </Td>
                     </tr>
                   ))
