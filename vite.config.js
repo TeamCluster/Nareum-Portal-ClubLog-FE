@@ -12,7 +12,7 @@ export default defineConfig({
       // 개발 중 /api/* 요청을 Flask 백엔드로 전달.
       // 브라우저는 same-origin 으로 인식 -> 세션 쿠키 자연스럽게 전달.
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5015',
         changeOrigin: true,
       },
     },
