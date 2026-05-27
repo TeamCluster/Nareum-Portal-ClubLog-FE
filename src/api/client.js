@@ -17,7 +17,7 @@
  * (개발 중엔 Vite 프록시가 :5000 의 Flask 로 전달)
  */
 
-const BASE = '/api'
+const BASE = (import.meta.env.VITE_API_BASE_URL ?? '') + '/api'
 
 /**
  * 응답을 파싱하고 에러를 표준화하는 내부 헬퍼.
