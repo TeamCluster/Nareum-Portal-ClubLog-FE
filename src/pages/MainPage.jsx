@@ -332,18 +332,39 @@ function SuccessModal({ modal, onContinue, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
       <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-        <h2 className="text-xl font-bold text-orange-700">저장 완료!</h2>
-        <p className="mt-3 text-sm text-stone-700">
-          <span className="text-stone-500">[{modal.category}]</span>{' '}
-          <span className="font-semibold">{modal.club}</span> 동아리 활동
-        </p>
-        <p className="text-sm text-stone-600">
-          {modal.date} · {modal.people}명
-        </p>
-        <p className="mt-3 text-sm text-stone-600">
-          이 정상적으로 저장되었습니다.
-        </p>
+        
+        {/* Grid 레이아웃 적용: 좌측 텍스트(1fr), 우측 이미지(auto) */}
+        <div className="grid grid-cols-[1fr_auto] items-start gap-4">
+          
+          {/* 왼쪽 텍스트 영역 */}
+          <div>
+            <h2 className="text-xl font-bold text-orange-700">저장 완료!</h2>
+            <div className="mt-4 text-sm">
+              <p className="text-stone-700">
+                <span className="text-stone-500">[{modal.category}]</span>{' '}
+                <span className="font-semibold">{modal.club}</span> 동아리 활동
+              </p>
+              <p className="mt-1 text-stone-600">
+                {modal.date} · {modal.people}명
+              </p>
+              <p className="mt-4 text-stone-600">
+                위 정보가 정상적으로 저장되었습니다.
+              </p>
+            </div>
+          </div>
 
+          {/* 오른쪽 도장 이미지 영역 */}
+          <div className="flex items-center justify-center pt-2">
+            <img
+              src="/img/center_goodjob.png"
+              alt="참 잘했어요 도장"
+              className="h-28 w-28 rotate-[30deg] object-contain opacity-90"
+            />
+          </div>
+          
+        </div>
+
+        {/* 하단 버튼 영역 */}
         <div className="mt-6 flex gap-3">
           <button
             type="button"
@@ -360,6 +381,7 @@ function SuccessModal({ modal, onContinue, onClose }) {
             닫기
           </button>
         </div>
+        
       </div>
     </div>
   )
