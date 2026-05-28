@@ -36,9 +36,9 @@ export default function Dashboard() {
       <AdminHeader />
 
       <main className="px-6 py-8 sm:px-10">
-        <h1 className="text-2xl font-bold text-stone-900">{info?.full_name || '알 수 없는'} 대시보드</h1>
+        <h1 className="text-2xl font-bold text-stone-900">{info?.full_name || '(불러오는 중)'} 대시보드</h1>
         <p className="mt-2 text-sm text-stone-600">
-          {info?.full_name || '알 수 없는'} 동아리 활동 현황입니다.
+          {info?.full_name || '(불러오는 중)'} 동아리 활동 현황입니다.
         </p>
 
         {error && (
@@ -86,15 +86,15 @@ export default function Dashboard() {
                         key={log.id}
                         className="border-b border-stone-100 last:border-0 hover:bg-stone-50"
                       >
-                        <Td>{log.created_at}</Td>
-                        <Td>
+                        <Td className="whitespace-nowrap">{log.created_at}</Td>
+                        <Td className="whitespace-nowrap">
                           <span className="text-stone-500">[{log.category}]</span>{' '}
                           {log.club_name}
                         </Td>
-                        <Td>{log.activity_date}</Td>
+                        <Td className="whitespace-nowrap">{log.activity_date}</Td>
                         <Td className="max-w-xs truncate">{log.content}</Td>
-                        <Td>{log.author}</Td>
-                        <Td className="text-right">{log.total_count}명</Td>
+                        <Td className="whitespace-nowrap">{log.author}</Td>
+                        <Td className="text-right whitespace-nowrap">{log.total_count}명</Td>
                       </tr>
                     ))
                   )}

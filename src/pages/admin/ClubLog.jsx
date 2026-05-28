@@ -68,7 +68,7 @@ export default function ClubLog() {
       <main className="px-6 py-8 sm:px-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-stone-900">활동 이력 관리</h1>
+            <h1 className="text-2xl font-bold text-stone-900">동아리 활동 전체이력</h1>
             <p className="mt-2 text-sm text-stone-600">
               전체 활동 이력을 조회/삭제하거나 엑셀로 내려받을 수 있습니다.
             </p>
@@ -138,14 +138,14 @@ export default function ClubLog() {
                         {log.start_time}~{log.end_time}
                       </Td>
                       <Td className="max-w-sm">
-                        <span className="line-clamp-2">{log.content}</span>
+                        <span className="line-clamp-2 truncate">{log.content}</span>
                       </Td>
                       <Td className="max-w-xs truncate">{log.participants}</Td>
-                      <Td>{log.author}</Td>
-                      <Td className="text-right whitespace-nowrap">
+                      <Td className="whitespace-nowrap">{log.author}</Td>
+                      <Td className="min-w-20 text-right whitespace-nowrap">
                         {log.total_count}명
                       </Td>
-                      <Td className="text-center">
+                      <Td className="min-w-20 text-center">
                         <button
                           type="button"
                           onClick={() => handleDelete(log)}

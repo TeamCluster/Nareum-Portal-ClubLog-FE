@@ -237,19 +237,19 @@ export default function MainPage() {
             />
           </Field>
 
-          <Field label="참가자 (선택)">
+          <Field label="참가자">
             <input
               type="text"
               value={participants}
               onChange={(e) => setParticipants(e.target.value)}
-              placeholder="콤마(,)로 구분"
+              placeholder="쉼표(,)로 구분 (루미, 미라, 조이)"
               className={inputClass}
             />
           </Field>
 
           <fieldset className="rounded-md border border-stone-200 p-4">
             <legend className="px-1 text-sm font-medium text-stone-700">
-              참가 인원 (총{' '}
+              연령별 참가자 수 (총{' '}
               <span className="font-bold text-orange-700">{totalCount}</span>명)
             </legend>
             <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
@@ -350,7 +350,7 @@ function SuccessModal({ modal, onContinue, onClose }) {
             onClick={onContinue}
             className="flex-1 rounded-md bg-orange-700 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-800"
           >
-            다시 작성
+            새로작성
           </button>
           <button
             type="button"
