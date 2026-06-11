@@ -25,6 +25,9 @@ export default function ClubLog() {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
 
+  // 검색어 — 참가자/작성자/동아리명/동아리분야를 가로질러 부분일치.
+  const [query, setQuery] = useState('')
+
   useEffect(() => {
     loadLogs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -40,17 +43,27 @@ export default function ClubLog() {
   }
 
   // 보고 있는 범위(필터 적용 결과). 모든 로그는 이미 메모리에 있으므로 프론트에서 필터.
+  // 기간 필터와 검색어를 함께(AND) 적용.
   const filteredLogs = useMemo(() => {
-    if (!from && !to) return logs
+    const q = query.trim().toLowerCase()
     return logs.filter((log) => {
-      const iso = toIsoDate(log.activity_date)
-      if (!iso) return false
-      const key = filterMode === 'month' ? iso.slice(0, 7) : iso
-      if (from && key < from) return false
-      if (to && key > to) return false
+      // 1) 기간 필터
+      if (from || to) {
+        const iso = toIsoDate(log.activity_date)
+        if (!iso) return false
+        const key = filterMode === 'month' ? iso.slice(0, 7) : iso
+        if (from && key < from) return false
+        if (to && key > to) return false
+      }
+      // 2) 검색어 — 참가자/작성자/동아리명/분야 중 하나라도 부분일치
+      if (q) {
+        const hay = [log.participants, log.author, log.club_name, log.category]
+          .map((v) => String(v ?? '').toLowerCase())
+        if (!hay.some((v) => v.includes(q))) return false
+      }
       return true
     })
-  }, [logs, from, to, filterMode])
+  }, [logs, from, to, filterMode, query])
 
   function switchMode(mode) {
     if (mode === filterMode) return
@@ -62,6 +75,7 @@ export default function ClubLog() {
   function resetFilter() {
     setFrom('')
     setTo('')
+    setQuery('')
   }
 
   async function handleDelete(log) {
@@ -138,7 +152,7 @@ export default function ClubLog() {
     }
   }
 
-  const hasFilter = Boolean(from || to)
+  const hasFilter = Boolean(from || to || query)
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -201,6 +215,29 @@ export default function ClubLog() {
           />
           <DateField label="종료" mode={filterMode} value={to} onChange={setTo} />
 
+          <label className="flex flex-col gap-1 text-xs text-stone-500">
+            검색
+            <div className="relative">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="참가자·작성자·동아리·분야"
+                className="w-56 rounded-md border border-stone-300 py-1.5 pl-3 pr-7 text-sm text-stone-800 focus:border-orange-500 focus:outline-none"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="검색어 지우기"
+                  className="absolute inset-y-0 right-1.5 flex items-center text-stone-400 hover:text-stone-600"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </label>
+
           {hasFilter && (
             <button
               type="button"
@@ -240,7 +277,7 @@ export default function ClubLog() {
                     <td colSpan={9} className="px-4 py-12 text-center text-stone-500">
                       {logs.length === 0
                         ? '아직 활동 이력이 없습니다.'
-                        : '해당 기간에 활동 이력이 없습니다.'}
+                        : '조건에 맞는 활동 이력이 없습니다.'}
                     </td>
                   </tr>
                 ) : (
