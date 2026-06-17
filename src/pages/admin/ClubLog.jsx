@@ -110,10 +110,19 @@ export default function ClubLog() {
         '활동일자',
         '시작시간',
         '종료시간',
+        // 페이지에는 표시되지 않지만 엑셀에는 연령별·성별 인원을 모두 남긴다.
+        '초등 남',
+        '초등 여',
+        '중등 남',
+        '중등 여',
+        '고등 남',
+        '고등 여',
+        '후기 남',
+        '후기 여',
+        '총 인원',
         '활동내용',
         '참가자',
         '작성자',
-        '인원',
       ]
       const rows = filteredLogs.map((log) => [
         log.created_at,
@@ -122,10 +131,18 @@ export default function ClubLog() {
         log.activity_date,
         log.start_time,
         log.end_time,
+        log.elem_m,
+        log.elem_f,
+        log.mid_m,
+        log.mid_f,
+        log.high_m,
+        log.high_f,
+        log.univ_m,
+        log.univ_f,
+        log.total_count,
         log.content,
         log.participants,
         log.author,
-        log.total_count,
       ])
 
       const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
@@ -136,10 +153,18 @@ export default function ClubLog() {
         { wch: 12 }, // 활동일자
         { wch: 8 }, // 시작시간
         { wch: 8 }, // 종료시간
+        { wch: 7 }, // 초등 남
+        { wch: 7 }, // 초등 여
+        { wch: 7 }, // 중등 남
+        { wch: 7 }, // 중등 여
+        { wch: 7 }, // 고등 남
+        { wch: 7 }, // 고등 여
+        { wch: 7 }, // 후기 남
+        { wch: 7 }, // 후기 여
+        { wch: 6 }, // 총 인원
         { wch: 40 }, // 활동내용
         { wch: 24 }, // 참가자
         { wch: 10 }, // 작성자
-        { wch: 6 }, // 인원
       ]
 
       const wb = XLSX.utils.book_new()
