@@ -23,13 +23,15 @@ export const superApi = {
   /** 기관 목록 (해시 제외). */
   getPlaces: () => apiGet('/super/places'),
 
-  /** 기관 추가. 검증 통과 시 <slug>.sqlite3 도 자동 생성됨. */
-  addPlace: (slug, fullName, shortName, password) =>
+  /** 기관 추가. 검증 통과 시 <slug>.sqlite3 도 자동 생성됨.
+   *  foundationSyncUrl 은 선택값(빈값 = 재단 동기화 안 함). */
+  addPlace: (slug, fullName, shortName, password, foundationSyncUrl = '') =>
     apiPost('/super/places', {
       slug,
       full_name: fullName,
       short_name: shortName,
       password,
+      foundation_sync_url: foundationSyncUrl,
     }),
 
   /** 기관 삭제. 옵션 B — DB 파일은 보존, places 행만 삭제.
@@ -39,4 +41,8 @@ export const superApi = {
   /** 기관 관리자 비밀번호 변경 (슈퍼만 가능). */
   updatePlacePassword: (slug, newPassword) =>
     apiPost(`/super/places/${slug}/password`, { new_password: newPassword }),
+
+  /** 기관의 재단 동기화 스크립트 URL 등록/수정/해제 (빈값 = 해제). */
+  updatePlaceSyncUrl: (slug, url) =>
+    apiPost(`/super/places/${slug}/sync-url`, { foundation_sync_url: url }),
 }

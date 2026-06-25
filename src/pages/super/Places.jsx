@@ -23,10 +23,13 @@ export default function Places() {
   const [newFullName, setNewFullName] = useState('')
   const [newShortName, setNewShortName] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [newSyncUrl, setNewSyncUrl] = useState('')
   const [adding, setAdding] = useState(false)
 
   // 어느 행의 비번 변경 폼이 펼쳐졌나
   const [editingSlug, setEditingSlug] = useState(null)
+  // 어느 행의 동기화 URL 폼이 펼쳐졌나
+  const [syncSlug, setSyncSlug] = useState(null)
   // 삭제 중인 행
   const [deletingSlug, setDeletingSlug] = useState(null)
 
@@ -51,13 +54,15 @@ export default function Places() {
         newSlug,
         newFullName,
         newShortName,
-        newPassword
+        newPassword,
+        newSyncUrl
       )
       setFlash({ type: 'success', message: result.message })
       setNewSlug('')
       setNewFullName('')
       setNewShortName('')
       setNewPassword('')
+      setNewSyncUrl('')
       loadPlaces()
     } catch (err) {
       setFlash({ type: 'error', message: err.message })
@@ -91,6 +96,13 @@ export default function Places() {
     setEditingSlug(null)
   }
 
+  async function handleSyncUrlUpdate(slug, url) {
+    const result = await superApi.updatePlaceSyncUrl(slug, url)
+    setFlash({ type: 'success', message: result.message })
+    setSyncSlug(null)
+    loadPlaces() // 동기화 상태 컬럼 갱신
+  }
+
   return (
     <div className="min-h-screen bg-stone-50">
       <SuperHeader />
@@ -98,7 +110,7 @@ export default function Places() {
       <main className="px-6 py-8 sm:px-10">
         <h1 className="text-2xl font-bold text-stone-900">기관 관리</h1>
         <p className="mt-2 text-sm text-stone-600">
-          기관을 추가, 삭제하거나 비밀번호를 변경할 수 있습니다.
+          기관을 추가, 삭제하거나 비밀번호·재단 동기화 URL을 변경할 수 있습니다.
         </p>
 
         {flash && (
@@ -166,6 +178,21 @@ export default function Places() {
               />
             </Field>
             <div className="sm:col-span-2">
+              <Field label="재단 동기화 스크립트 URL (선택)">
+                <input
+                  type="url"
+                  value={newSyncUrl}
+                  onChange={(e) => setNewSyncUrl(e.target.value)}
+                  placeholder="https://script.google.com/macros/s/.../exec  (비워두면 동기화 안 함)"
+                  className={`${inputClass} font-mono text-xs`}
+                />
+              </Field>
+              <p className="mt-1 text-xs text-stone-500">
+                동아리 활동일지 저장 시 재단 구글시트로 자동 전송할 Apps Script 웹앱 주소입니다.
+                나중에 기관 목록에서 등록·수정할 수도 있습니다.
+              </p>
+            </div>
+            <div className="sm:col-span-2">
               <button
                 type="submit"
                 disabled={adding}
@@ -189,6 +216,7 @@ export default function Places() {
                   <Th>슬러그</Th>
                   <Th>풀네임</Th>
                   <Th>축약별칭</Th>
+                  <Th className="text-center">실적링크</Th>
                   <Th>생성일시</Th>
                   <Th className="w-72 text-center">관리</Th>
                 </tr>
@@ -196,7 +224,7 @@ export default function Places() {
               <tbody>
                 {places.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-12 text-center text-stone-500">
+                    <td colSpan={6} className="px-4 py-12 text-center text-stone-500">
                       아직 등록된 기관이 없습니다.
                     </td>
                   </tr>
@@ -206,11 +234,23 @@ export default function Places() {
                       key={place.slug}
                       place={place}
                       editing={editingSlug === place.slug}
+                      syncEditing={syncSlug === place.slug}
                       deleting={deletingSlug === place.slug}
-                      onStartEdit={() => setEditingSlug(place.slug)}
+                      onStartEdit={() => {
+                        setSyncSlug(null)
+                        setEditingSlug(place.slug)
+                      }}
                       onCancelEdit={() => setEditingSlug(null)}
+                      onStartSyncEdit={() => {
+                        setEditingSlug(null)
+                        setSyncSlug(place.slug)
+                      }}
+                      onCancelSyncEdit={() => setSyncSlug(null)}
                       onPasswordUpdate={(pw) =>
                         handlePasswordUpdate(place.slug, pw)
+                      }
+                      onSyncUrlUpdate={(url) =>
+                        handleSyncUrlUpdate(place.slug, url)
                       }
                       onDelete={() => handleDelete(place)}
                       onFlashError={(msg) =>
@@ -233,19 +273,38 @@ export default function Places() {
 function PlaceRow({
   place,
   editing,
+  syncEditing,
   deleting,
   onStartEdit,
   onCancelEdit,
+  onStartSyncEdit,
+  onCancelSyncEdit,
   onPasswordUpdate,
+  onSyncUrlUpdate,
   onDelete,
   onFlashError,
 }) {
+  const synced = !!(place.foundation_sync_url || '').trim()
   return (
     <>
       <tr className="border-b border-stone-100 last:border-0 hover:bg-stone-50">
         <Td className="font-mono">{place.slug}</Td>
         <Td className="font-medium">{place.full_name}</Td>
         <Td>{place.short_name}</Td>
+        <Td className="text-center">
+          {synced ? (
+            <span
+              title={place.foundation_sync_url}
+              className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
+            >
+              ● 입력함
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-500">
+              ○ 미설정
+            </span>
+          )}
+        </Td>
         <Td className="whitespace-nowrap text-stone-500">{place.created_at}</Td>
         <Td>
           <div className="flex flex-wrap justify-center gap-2">
@@ -257,6 +316,13 @@ function PlaceRow({
             >
               관리 페이지 ↗
             </a>
+            <button
+              type="button"
+              onClick={syncEditing ? onCancelSyncEdit : onStartSyncEdit}
+              className="rounded border border-stone-300 px-2 py-1 text-xs text-stone-700 hover:bg-stone-100"
+            >
+              {syncEditing ? '취소' : '동기화 URL'}
+            </button>
             <button
               type="button"
               onClick={editing ? onCancelEdit : onStartEdit}
@@ -275,7 +341,16 @@ function PlaceRow({
           </div>
         </Td>
       </tr>
-      {/* editing 일 때만 별도 컴포넌트 mount -> state 자동 청소 */}
+      {/* 펼침 폼은 해당 상태일 때만 mount -> 입력값 자동 청소 */}
+      {syncEditing && (
+        <SyncUrlEditForm
+          slug={place.slug}
+          currentUrl={place.foundation_sync_url || ''}
+          onCancel={onCancelSyncEdit}
+          onSubmit={onSyncUrlUpdate}
+          onError={onFlashError}
+        />
+      )}
       {editing && (
         <PasswordEditForm
           slug={place.slug}
@@ -285,6 +360,89 @@ function PlaceRow({
         />
       )}
     </>
+  )
+}
+
+function SyncUrlEditForm({ slug, currentUrl, onCancel, onSubmit, onError }) {
+  const [url, setUrl] = useState(currentUrl)
+  const [submitting, setSubmitting] = useState(false)
+
+  function isValid(u) {
+    const s = (u || '').trim()
+    if (!s) return true // 빈값 = 동기화 해제 허용
+    return (
+      s.startsWith('https://') &&
+      s.includes('script.google.com/macros/') &&
+      s.endsWith('/exec')
+    )
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!isValid(url)) {
+      onError(
+        'Apps Script 웹앱 주소 형식이어야 합니다. (https://script.google.com/macros/s/.../exec)'
+      )
+      return
+    }
+    setSubmitting(true)
+    try {
+      await onSubmit(url.trim())
+    } catch (err) {
+      onError(err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <tr className="bg-stone-50">
+      <td colSpan={6} className="px-4 py-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <span className="whitespace-nowrap font-mono text-sm text-stone-700">
+              <span className="text-stone-500">slug:</span> {slug}
+            </span>
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://script.google.com/macros/s/.../exec"
+              className={`${inputClass} flex-1 font-mono text-xs`}
+            />
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded bg-stone-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-400"
+              >
+                {submitting ? '저장 중…' : '저장'}
+              </button>
+              {currentUrl.trim() && (
+                <button
+                  type="button"
+                  onClick={() => setUrl('')}
+                  className="rounded border border-amber-300 px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-50"
+                >
+                  비우기(해제)
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onCancel}
+                className="rounded border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-stone-500">
+            동아리 활동일지 저장 시 재단 구글시트로 자동 전송할 Apps Script /exec 주소입니다.
+            빈칸으로 저장하면 이 기관의 재단 동기화가 꺼집니다.
+          </p>
+        </form>
+      </td>
+    </tr>
   )
 }
 
@@ -315,7 +473,7 @@ function PasswordEditForm({ slug, onCancel, onSubmit, onError }) {
 
   return (
     <tr className="bg-stone-50">
-      <td colSpan={5} className="px-4 py-4">
+      <td colSpan={6} className="px-4 py-4">
         <form
           onSubmit={handleSubmit}
           className="flex flex-col gap-2 sm:flex-row sm:items-center"
